@@ -122,7 +122,13 @@ class FolderSelectorApp(QWidget):
         self.run_button.clicked.connect(self.run)
         layout.addWidget(self.run_button)
         self.run_info = QLabel("", self)
-        layout.addWidget(self.run_info)
+        # layout.addWidget(self.run_info)
+        scroll_2 = QScrollArea()
+        scroll_2.setMinimumHeight(350)
+        scroll_2.setWidgetResizable(True)  # Cho phép widget resize theo scroll area
+        scroll_2.setWidget(self.run_info)
+        layout.addWidget(scroll_2)
+
         self.setLayout(layout)
 
     def select_folder_input(self):
