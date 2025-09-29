@@ -1,15 +1,17 @@
 import sys
-from pathlib import Path
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLabel, QFileDialog, QHBoxLayout, \
-    QLineEdit, QTextEdit, QFrame, QStyle
+    QLineEdit, QTextEdit, QFrame, QStyle, QScrollArea
 from PyQt5.QtWidgets import QRadioButton, QButtonGroup
+from PyQt5.QtCore import Qt
 import os
 import shutil
 
 class FolderSelectorApp(QWidget):
     def __init__(self):
         super().__init__()
+        self.loading_dialog = None
+        self.query_result = None
         self.init_ui()
         self.input_folder = ""
         self.output_folder = ""
@@ -103,7 +105,13 @@ class FolderSelectorApp(QWidget):
         self.info_query_result = QLabel(f"Danh sách OUTPUT:", self)
         layout.addWidget(self.info_query_result)
         self.query_result = QLabel("---", self)
-        layout.addWidget(self.query_result)
+        self.query_result.setWordWrap(True)
+        # Tạo QScrollArea
+        scroll = QScrollArea()
+        scroll.setMinimumHeight(350)
+        scroll.setWidgetResizable(True)  # Cho phép widget resize theo scroll area
+        scroll.setWidget(self.query_result)
+        layout.addWidget(scroll)
 
         # Thêm line separator
         layout.addWidget(self.new_step())
@@ -213,7 +221,6 @@ class FolderSelectorApp(QWidget):
         self.loading_dialog = QWidget()
         self.loading_dialog.setWindowTitle("Loading")
         self.loading_dialog.setGeometry(500, 300, 300, 100)
-        from PyQt5.QtCore import Qt
         self.loading_dialog.setWindowModality(Qt.ApplicationModal)
         self.loading_dialog.setWindowFlags(self.loading_dialog.windowFlags() & ~Qt.WindowCloseButtonHint)
 

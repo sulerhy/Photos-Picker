@@ -2,3 +2,6 @@
 /build/
 /.idea/
 /.venv1/
+.idea/misc.xml
+.idea/Photos_Picker.iml
+/.idea
