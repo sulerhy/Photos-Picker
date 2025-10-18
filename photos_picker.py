@@ -20,15 +20,14 @@ class FolderSelectorApp(QWidget):
         self.result_query_list_info = []
 
     def init_ui(self):
-
         self.setWindowTitle("PHOTOS PICKER")
         self.setWindowIcon(QIcon("icon.ico"))
         self.setGeometry(400, 200, 400, 150)
         self.resize(600, 400)
         layout = QVBoxLayout()
         # input folder
-        self.info_label_input = QLabel("1. Thư mục ảnh INPUT (ảnh gốc):", self)
-        self.button_input = QPushButton("Chọn thư mục INPUT", self)
+        self.info_label_input = QLabel("1. Thư mục ảnh gốc:", self)
+        self.button_input = QPushButton("Chọn thư mục", self)
         self.button_input.clicked.connect(self.select_folder_input)
         row_widget = QWidget()
         row_layout = QHBoxLayout()
@@ -40,22 +39,8 @@ class FolderSelectorApp(QWidget):
         # Thêm line separator
         layout.addWidget(self.new_step())
 
-        # output folder
-        self.info_label_output = QLabel("2. Thư mục ảnh OUTPUT (ảnh chọn):", self)
-        self.button_output = QPushButton("Chọn thư mục OUTPUT", self)
-        self.button_output.clicked.connect(self.select_folder_output)
-        row_widget = QWidget()
-        row_layout = QHBoxLayout()
-        row_layout.addWidget(self.info_label_output)
-        row_layout.addWidget(self.button_output)
-        row_widget.setLayout(row_layout)
-        layout.addWidget(row_widget)
-
-        # Thêm line separator
-        layout.addWidget(self.new_step())
-
         # input query
-        self.info_label_query = QLabel("3. Danh sách ảnh cần chọn:", self)
+        self.info_label_query = QLabel("2. Danh sách ảnh cần chọn:", self)
         layout.addWidget(self.info_label_query)
 
         # Tiền tố
@@ -116,6 +101,19 @@ class FolderSelectorApp(QWidget):
         # Thêm line separator
         layout.addWidget(self.new_step())
 
+        # output folder
+        self.info_label_output = QLabel("Thư mục ảnh xuất ra:", self)
+        self.info_label_export_folder = QLabel("", self)
+        row_widget = QWidget()
+        row_layout = QHBoxLayout()
+        row_layout.addWidget(self.info_label_output)
+        row_layout.addWidget(self.info_label_export_folder)
+        row_widget.setLayout(row_layout)
+        layout.addWidget(row_widget)
+
+        # Thêm line separator
+        layout.addWidget(self.new_step())
+
         # Run button
         self.run_button = QPushButton("Tiến hành lọc ảnh!", self)
         self.run_button.setStyleSheet("background-color: #4CAF50; color: blue; font-weight: bold; font-size: 23px; border-radius: 8px; padding: 10px;")
@@ -138,13 +136,6 @@ class FolderSelectorApp(QWidget):
             print("input_folder:", input_folder)
         self.input_folder = input_folder
 
-    def select_folder_output(self):
-        output_folder = QFileDialog.getExistingDirectory(self, "Chọn thư mục OUTPUT")
-        if output_folder:
-            self.info_label_output.setText(f"2. Thư mục OUTPUT: {output_folder}")
-            print("output_folder:", output_folder)
-        self.output_folder = output_folder
-
     def process_query(self):
         self.customer_query = self.textbox_query.toPlainText()
         self.result_query_list = []
@@ -162,7 +153,19 @@ class FolderSelectorApp(QWidget):
                 else:
                     self.result_query_list_info.append(pic_name + "❌ (Không tìm thấy ảnh)")
         result_str = "\n".join(self.result_query_list_info) + f"\n----\nTổng: {len(self.result_query_list_info)} ảnh"
+        self.set_output_folder(self.input_folder, len(self.result_query_list_info))
         self.query_result.setText(str(result_str))
+
+    def set_output_folder(self, input_folder, number_of_images):
+        # set output folder to sibling named <input_folder_name> [Chọn N ảnh]
+        parent = os.path.dirname(input_folder)
+        input_name = os.path.basename(input_folder.rstrip(os.sep))
+        if parent and input_name:
+            output_folder = os.path.join(parent, input_name + " [Chọn "+ str(number_of_images) +" ảnh]")
+            if not os.path.exists(output_folder):
+                os.makedirs(output_folder)
+            self.output_folder = output_folder
+            self.info_label_export_folder.setText(str(output_folder))
 
     def run(self):
         self.run_info.setText("")
