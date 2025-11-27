@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['main.py'],
+    ['photos_picker.py'],
     pathex=[],
     binaries=[],
     datas=[],
