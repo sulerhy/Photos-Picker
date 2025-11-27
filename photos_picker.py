@@ -158,13 +158,14 @@ class FolderSelectorApp(QWidget):
         pics_set = set()
         # split by new line
         pics = self.customer_query.split("\n")
+        current_suffix = ("RAF" if self.suffix_radio_raf.isChecked() else
+            "JPG" if self.suffix_radio_jpg.isChecked() else
+            "CR3" if self.suffix_radio_cr3.isChecked() else
+            "NEF")
         for pic in pics:
             pic = pic.strip()
             if pic:
-                pic_name = self.prefix_input_line.text() + pic + "." + ("RAF" if self.suffix_radio_raf.isChecked() else
-                                                            "JPG" if self.suffix_radio_jpg.isChecked() else
-                                                            "CR3" if self.suffix_radio_cr3.isChecked() else
-                                                            "NEF")
+                pic_name = self.prefix_input_line.text() + pic + "." + current_suffix
                 self.result_query_list.append(pic_name)
                 if pic_name in pics_set:
                     self.result_query_list_info.append(pic_name + "⚠️ (Ảnh trùng lặp)")
