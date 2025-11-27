@@ -73,15 +73,21 @@ class FolderSelectorApp(QWidget):
         self.info_label_suffix = QLabel("Loại Ảnh:", self)
         self.suffix_radio_raf = QRadioButton("RAF", self)
         self.suffix_radio_jpg = QRadioButton("JPG", self)
+        self.suffix_radio_cr3 = QRadioButton("CR3", self)
+        self.suffix_radio_nef = QRadioButton("NEF", self)
         self.suffix_radio_raf.setChecked(True)
         self.suffix_button_group = QButtonGroup(self)
         self.suffix_button_group.addButton(self.suffix_radio_raf)
         self.suffix_button_group.addButton(self.suffix_radio_jpg)
+        self.suffix_button_group.addButton(self.suffix_radio_cr3)
+        self.suffix_button_group.addButton(self.suffix_radio_nef)
         row_widget = QWidget()
         row_layout = QHBoxLayout()
         row_layout.addWidget(self.info_label_suffix)
         row_layout.addWidget(self.suffix_radio_raf)
         row_layout.addWidget(self.suffix_radio_jpg)
+        row_layout.addWidget(self.suffix_radio_cr3)
+        row_layout.addWidget(self.suffix_radio_nef)
         row_widget.setLayout(row_layout)
         layout.addWidget(row_widget)
 
@@ -149,13 +155,22 @@ class FolderSelectorApp(QWidget):
         self.customer_query = self.textbox_query.toPlainText()
         self.result_query_list = []
         self.result_query_list_info = []
+        pics_set = set()
         # split by new line
         pics = self.customer_query.split("\n")
         for pic in pics:
             pic = pic.strip()
             if pic:
-                pic_name = self.prefix_input_line.text() + pic + "." + ("JPG" if self.suffix_radio_jpg.isChecked() else "RAF")
+                pic_name = self.prefix_input_line.text() + pic + "." + ("RAF" if self.suffix_radio_raf.isChecked() else
+                                                            "JPG" if self.suffix_radio_jpg.isChecked() else
+                                                            "CR3" if self.suffix_radio_cr3.isChecked() else
+                                                            "NEF")
                 self.result_query_list.append(pic_name)
+                if pic_name in pics_set:
+                    self.result_query_list_info.append(pic_name + "⚠️ (Ảnh trùng lặp)")
+                    continue
+                else:
+                    pics_set.add(pic_name)
                 # check if pic_name exists in input folder
                 if os.path.exists(self.input_folder + "/" +  pic_name):
                     self.result_query_list_info.append(pic_name + "🟢　OK")
