@@ -203,16 +203,6 @@ class FolderSelectorApp(QWidget):
         self.loading_dialog.setLayout(layout_loading)
         self.loading_dialog.show()
         QApplication.processEvents()
-        # delete all files in output folder
-        for filename in os.listdir(self.output_folder):
-            file_path = os.path.join(self.output_folder, filename)
-            try:
-                if os.path.isfile(file_path) or os.path.islink(file_path):
-                    os.unlink(file_path)
-                elif os.path.isdir(file_path):
-                    shutil.rmtree(file_path)
-            except Exception as e:
-                print(f'Failed to delete {file_path}. Reason: {e}')
 
         copied_count = 0
         for pic in self.result_query_list:
