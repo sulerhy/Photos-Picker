@@ -1,5 +1,5 @@
 # Photos Picker
-
+![img.png](img.png)
 **Helping photographers quickly select and copy the right photos from customer lists.**
 
 As a photographer and developer, I understand how frustrating and time-consuming it is to manually sort through hundreds of photos to find the ones a customer wants. Photos Picker automates this process with a simple, intuitive interface.
