@@ -2,7 +2,7 @@ from PyQt5.QtCore import Qt, QSettings
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
-    QFileDialog, QLineEdit, QTextEdit, QFrame, QComboBox, QProgressBar,
+    QFileDialog, QLineEdit, QTextEdit, QFrame, QComboBox, QProgressBar, QCheckBox,
 )
 
 from core.service import (
@@ -31,6 +31,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "lbl_prefix":       "Tiền tố ảnh:",
         "lbl_brand":        "Hãng:",
         "lbl_format":       "Định dạng:",
+        "auto_fetch_label": "Tự động lấy thông tin",
+        "auto_fetch_no_folder": "Chưa chọn thư mục đầu vào",
         "sec_query":        "🔍 Danh sách số ảnh",
         "placeholder":      "Nhập số ảnh, mỗi số một dòng...",
         "btn_check":        "🔍 Kiểm tra",
@@ -59,6 +61,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "lbl_prefix":       "Prefix:",
         "lbl_brand":        "Brand:",
         "lbl_format":       "Format:",
+        "auto_fetch_label": "Auto-fetch info",
+        "auto_fetch_no_folder": "No input folder selected",
         "sec_query":        "🔍 Photo number list",
         "placeholder":      "Enter photo numbers, one per line...",
         "btn_check":        "🔍 Check",
@@ -136,6 +140,7 @@ class FolderSelectorApp(QWidget):
         self._copy_total: int = 0
         self._copy_done: int = 0
         self._lang: str = "vi"
+        self.auto_fetch_checkbox: QCheckBox | None = None
         self._init_ui()
 
     # ── Translation helper ─────────────────────────────────────────────────────
@@ -206,6 +211,18 @@ class FolderSelectorApp(QWidget):
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
+
+        # Auto-fetch checkbox row
+        self.auto_fetch_checkbox = QCheckBox(self._t("auto_fetch_label"))
+        self.auto_fetch_checkbox.setChecked(True)  # Default: checked
+        self.auto_fetch_checkbox.stateChanged.connect(self._on_auto_fetch_toggled)
+        auto_fetch_row = QHBoxLayout()
+        auto_fetch_row.setContentsMargins(0, 0, 0, 0)
+        auto_fetch_row.addWidget(self.auto_fetch_checkbox)
+        auto_fetch_row.addStretch()
+        auto_fetch_widget = QWidget()
+        auto_fetch_widget.setLayout(auto_fetch_row)
+        layout.addWidget(auto_fetch_widget)
 
         # Prefix + brand + format dropdowns row
         self.lbl_prefix = QLabel(self._t("lbl_prefix"))
@@ -354,6 +371,9 @@ class FolderSelectorApp(QWidget):
             label.setText(folder)
             label.setStyleSheet(f"color: {CLR_OK}; font-style: normal; background-color: {CLR_PATH_BG}; padding: 6px; border-radius: 4px;")
             setattr(self, attr, folder)
+            # Trigger auto-fetch if checking input folder and checkbox is enabled
+            if attr == "input_folder" and self.auto_fetch_checkbox and self.auto_fetch_checkbox.isChecked():
+                self._do_auto_fetch()
 
     def _selected_file_type(self) -> str:
         return self.format_combo.currentText()
@@ -371,6 +391,7 @@ class FolderSelectorApp(QWidget):
         s.setValue("prefix", self.prefix_input_line.text())
         s.setValue("brand", self.brand_combo.currentText())
         s.setValue("format", self.format_combo.currentText())
+        s.setValue("auto_fetch_enabled", "true" if self.auto_fetch_checkbox.isChecked() else "false")
 
     def _load_settings(self):
         s = QSettings(SETTINGS_ORG, SETTINGS_APP)
@@ -381,6 +402,11 @@ class FolderSelectorApp(QWidget):
         prefix = s.value("prefix", DEFAULT_PREFIX)
         brand = s.value("brand", list(CAMERA_BRANDS.keys())[0])
         fmt = s.value("format", CAMERA_BRANDS[list(CAMERA_BRANDS.keys())[0]][0])
+
+        # Load checkbox state - if saved as "false", uncheck it; otherwise keep checked
+        auto_fetch_str = s.value("auto_fetch_enabled", "true")
+        if auto_fetch_str.lower() == "false":
+            self.auto_fetch_checkbox.setChecked(False)
 
         self.prefix_input_line.setText(prefix)
 
@@ -395,6 +421,55 @@ class FolderSelectorApp(QWidget):
         self._retranslate_ui()
 
     # ── Slots ─────────────────────────────────────────────────────────────────
+
+    def _on_auto_fetch_toggled(self, state):
+        """Handle auto-fetch checkbox toggle."""
+        if state == Qt.Checked:
+            # Disable fields
+            self.prefix_input_line.setEnabled(False)
+            self.brand_combo.setEnabled(False)
+            self.format_combo.setEnabled(False)
+            # Try to auto-fetch if folder is already selected
+            if self.input_folder:
+                self._do_auto_fetch()
+        else:
+            # Enable fields
+            self.prefix_input_line.setEnabled(True)
+            self.brand_combo.setEnabled(True)
+            self.format_combo.setEnabled(True)
+
+    def _do_auto_fetch(self):
+        """Auto-fetch and populate prefix, brand, format from first image in folder."""
+        info = PhotoPickerService.fetch_info_from_folder(self.input_folder)
+        if info is None:
+            return  # Silently ignore if no images found
+
+        # Block all signals to avoid intermediate saves
+        self.prefix_input_line.blockSignals(True)
+        self.brand_combo.blockSignals(True)
+        self.format_combo.blockSignals(True)
+
+        # Set prefix
+        self.prefix_input_line.setText(info["prefix"])
+
+        # Set brand and manually repopulate format_combo
+        idx = self.brand_combo.findText(info["brand"])
+        if idx >= 0:
+            self.brand_combo.setCurrentIndex(idx)
+        # Manually call _on_brand_changed to repopulate format_combo (with signals blocked)
+        self._on_brand_changed(info["brand"])
+
+        # Set format
+        idx = self.format_combo.findText(info["format"])
+        if idx >= 0:
+            self.format_combo.setCurrentIndex(idx)
+
+        # Unblock signals and save
+        self.prefix_input_line.blockSignals(False)
+        self.brand_combo.blockSignals(False)
+        self.format_combo.blockSignals(False)
+
+        self._save_settings()
 
     def _on_check(self):
         numbers = self.textbox_query.toPlainText().split("\n")
@@ -518,6 +593,8 @@ class FolderSelectorApp(QWidget):
         self.lbl_prefix.setText(self._t("lbl_prefix"))
         self.lbl_brand.setText(self._t("lbl_brand"))
         self.lbl_format.setText(self._t("lbl_format"))
+        if self.auto_fetch_checkbox:
+            self.auto_fetch_checkbox.setText(self._t("auto_fetch_label"))
         self.lbl_sec_query.setText(self._t("sec_query"))
         self.textbox_query.setPlaceholderText(self._t("placeholder"))
         self.button_query.setText(self._t("btn_check"))

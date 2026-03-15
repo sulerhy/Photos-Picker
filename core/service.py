@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -25,6 +26,13 @@ CAMERA_BRANDS: dict[str, list[str]] = {
 
 # Keep flat FILE_TYPES for fallback (first format per brand)
 FILE_TYPES = [formats[0] for formats in CAMERA_BRANDS.values()]
+
+# Reverse extension → brand lookup (first-match wins for shared extensions)
+_EXT_TO_BRAND = {}
+for _brand, _exts in CAMERA_BRANDS.items():
+    for _ext in _exts:
+        if _ext not in _EXT_TO_BRAND:
+            _EXT_TO_BRAND[_ext] = _brand
 
 STATUS_OK      = "🟢 OK"
 STATUS_DUPE    = "⚠️ (Ảnh trùng lặp)"
@@ -98,3 +106,35 @@ class PhotoPickerService:
             subprocess.Popen(["open", path])
         else:
             subprocess.Popen(["xdg-open", path])
+
+    @staticmethod
+    def fetch_info_from_folder(folder_path: str) -> dict | None:
+        """
+        Fetch prefix, format, and brand from the first image file in folder_path.
+        Returns {"prefix": str, "format": str, "brand": str} or None if no image found.
+        """
+        try:
+            files = sorted(os.listdir(folder_path))
+        except (OSError, FileNotFoundError):
+            return None
+
+        for filename in files:
+            # Get file extension (uppercase, without dot)
+            _, ext = os.path.splitext(filename)
+            file_ext = ext.lstrip(".").upper()
+
+            # Check if this extension is in any brand's formats
+            if file_ext not in _EXT_TO_BRAND:
+                continue
+
+            # Extract prefix: leading alphabetical characters from stem
+            stem = os.path.splitext(filename)[0]
+            match = re.match(r"^([A-Za-z]+)", stem)
+            if not match:
+                continue
+
+            prefix = match.group(1)
+            brand = _EXT_TO_BRAND[file_ext]
+            return {"prefix": prefix, "format": file_ext, "brand": brand}
+
+        return None
