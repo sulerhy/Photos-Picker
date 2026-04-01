@@ -16,7 +16,7 @@ As a photographer and developer, I understand how frustrating and time-consuming
 
 ## 📚 Documentation
 
-### User Guides (عام المستخدمون)
+### User Guides 
 - **[MANUAL_EN.md](MANUAL_EN.md)** - Complete user guide in English
   - Installation, step-by-step usage, troubleshooting, tips & tricks
 
